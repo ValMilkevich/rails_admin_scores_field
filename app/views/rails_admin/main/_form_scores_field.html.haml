@@ -1,0 +1,84 @@
+- i18n_prefix = field.scores_config[:i18n_prefix]
+
+.controls.scores-controls
+  .scores-errors
+    = form.errors_for(field)
+  = form.send :hidden_field_tag, "#{form.object_name}[#{field.method_name}][totals][total]", form.object.send(field.method_name).try(:[], "totals").try(:[], "total"), class: 'grand_total_score'
+  %ul.nav.nav-tabs{ :style => 'margin-top:5px' }
+    - field.scores_config[:data].each do |data_set|
+      - klass = "scores-tab-#{data_set[:key]}-#{form.object.id}"
+      - total_key = "#{form.object_name}[#{field.method_name}][totals]#{data_set[:key]}"
+      - title = I18n.t([i18n_prefix, data_set[:key]].join('.'), default: data_set[:key].try(:humanize) )
+      - max_score = data_set[:set].map{|set| set[:options].to_a.map{|el| el.respond_to?(:last) ? el.last.to_i : el.to_i }.max }.sum
+      %li{ class: "toggleable-tab #{ ( 'active' if data_set[:key] == form.object.scores.keys.first )}" }
+        %a{ href: "#", for: total_key, nowrap: "nowrap", data: { toggle: "tab",  target: ".#{klass}:first", max_score: max_score} }
+          = title
+          %span.total
+    %li
+      %a{ href: "#", for: 'total', nowrap: "nowrap" }
+        = "Total"
+        %span.total
+.tab-content.scores-tab-content
+  - field.scores_config[:data].each do |data_set|
+    - klass = "scores-tab-#{data_set[:key]}-#{form.object.id}"
+    - total_key = "#{form.object_name}[#{field.method_name}][totals]#{data_set[:key]}"
+    .fields.tab-pane{ for: total_key, class: "#{klass} #{'active' if data_set[:key] == form.object.scores.keys.first}" }
+      .row
+      = form.send :hidden_field_tag, total_key, form.object.send(field.method_name).try(:[], "totals").try(:[], "#{data_set[:key]}"), {class: "total-score"}
+      - data_set[:set].each do |data_line|
+        .col-md-4
+          .form-group.form-group-md
+            - options = data_line[:options].to_a.map{ |name, value| [(name.present? ? I18n.t([i18n_prefix, 'options', name.to_s].join('.'), default: name.to_s.try(:humanize)) : value), (value || name)]}
+            - selected_value = form.object.send(field.method_name).try(:[], "points").try(:[], data_set[:key]).try(:[], data_line[:key])
+            - label_name = I18n.t([i18n_prefix, data_line[:key]].join('.'), default: data_line[:key].try(:humanize))
+            - field_name = "#{form.object_name}[#{field.method_name}][points][#{data_set[:key]}][#{data_line[:key]}]"
+            %label.col-sm-6.control-label(for=field_name style="text-align:right;")
+              = label_name
+            .col-sm-6
+              = form.send :select_tag, field_name, options_for_select(options, selected_value), field.html_attributes.reverse_merge({class: "form-control", include_blank: true, onchange: "calculateTotal(this)", total_for: total_key})
+
+
+/ .form-horizontal
+/   .row
+/   - field.scores_config[:data].each do |data_set|
+/     .col-md-3
+/       %h4= I18n.t([i18n_prefix, data_set[:key]].join('.'), default: data_set[:key].try(:humanize) )
+/       - data_set[:set].each do |data_line|
+/         .form-group.form-group-md
+/           - options = data_line[:options].to_a.map{ |name, value| [(name.present? ? I18n.t([i18n_prefix, 'options', name.to_s].join('.'), default: name.to_s.try(:humanize)) : value), (value || name)]}
+/           - selected_value = form.object.send(field.method_name).try(:[], data_set[:key]).try(:[], data_line[:key])
+/           - label_name = I18n.t([i18n_prefix, data_line[:key]].join('.'), default: data_line[:key].try(:humanize))
+/           - field_name = "#{form.object_name}[#{field.method_name}][#{data_set[:key]}][#{data_line[:key]}]"
+/           %label.col-sm-6.control-label(for=field_name style="text-align:left;")= label_name
+/           .col-sm-6
+/             = form.send :select_tag, field_name, options_for_select(options, selected_value), field.html_attributes.reverse_merge({class: "form-control", include_blank: true})
+
+:javascript
+  calculateTotal = function(el){
+    var sum = 0;
+    $(el).closest('.tab-pane').find('select :selected').each(function() {
+        sum += Number($(this).val());
+    });
+    klass = $(el).attr('total_for')
+    $('.scores-controls a[for="' + klass + '"] .total').html(" &mdash; " + sum + " / " + $('.scores-controls a[for="' + klass + '"]').attr('data-max-score') )
+    $('input.total-score[name="'+klass+'"]').val(sum)
+    
+    var total_sum = 0;
+    $('input.total-score').each(function() {
+        total_sum += Number($(this).val());
+    });
+    var total_max_sum = 0;
+    $('.scores-controls .toggleable-tab a').each(function() {
+        total_max_sum += Number($(this).attr('data-max-score'));
+    });
+    $(el).closest('.controls').find('.grand_total_score').val(total_sum)
+    $('.scores-controls a[for="total"] .total').html(" &mdash; " + total_sum + " / " + total_max_sum)
+  }
+
+  $(document).ready(function(){
+    $('.scores-tab-content select').each(function() {
+        calculateTotal(this)
+    });
+  })
+  calculateTotal(this)
+
