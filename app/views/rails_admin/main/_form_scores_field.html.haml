@@ -22,7 +22,7 @@
   - field.scores_config[:data].each do |data_set|
     - klass = "scores-tab-#{data_set[:key]}-#{form.object.id}"
     - total_key = "#{form.object_name}[#{field.method_name}][totals]#{data_set[:key]}"
-    .fields.tab-pane{ for: total_key, class: "#{klass} #{'active' if data_set[:key] == form.object.scores.keys.first}" }
+    .fields.tab-pane{ for: total_key, class: "#{klass} #{'active' if data_set[:key].to_s == form.object.send(field.method_name).try(:keys).try(:first).to_s }" }
       .row
       = form.send :hidden_field_tag, total_key, form.object.send(field.method_name).try(:[], "totals").try(:[], "#{data_set[:key]}"), {class: "total-score"}
       - data_set[:set].each do |data_line|
