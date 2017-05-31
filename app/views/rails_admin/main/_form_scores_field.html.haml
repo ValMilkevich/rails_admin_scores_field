@@ -10,7 +10,7 @@
       - total_key = "#{form.object_name}[#{field.method_name}][totals]#{data_set[:key]}"
       - title = I18n.t([i18n_prefix, data_set[:key]].join('.'), default: data_set[:key].try(:humanize) )
       - max_score = data_set[:set].map{|set| set[:options].to_a.map{|el| el.respond_to?(:last) ? el.last.to_i : el.to_i }.max }.sum
-      %li{ class: "toggleable-tab #{ ( 'active' if data_set[:key] == form.object.scores.keys.first )}" }
+      %li{ class: "toggleable-tab #{ ( 'active' if data_set[:key].to_s == form.object.send(field.method_name).try(:keys).try(:first).to_s )}" }
         %a{ href: "#", for: total_key, nowrap: "nowrap", data: { toggle: "tab",  target: ".#{klass}:first", max_score: max_score} }
           = title
           %span.total
