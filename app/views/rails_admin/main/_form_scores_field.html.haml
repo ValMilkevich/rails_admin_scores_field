@@ -8,7 +8,7 @@
     - field.scores_config[:data].each do |data_set|
       - klass = "scores-tab-#{data_set[:key]}-#{form.object.id}"
       - total_key = "#{form.object_name}[#{field.method_name}][totals]#{data_set[:key]}"
-      - title = I18n.t([i18n_prefix, data_set[:key]].join('.'), default: data_set[:key].try(:humanize) )
+      - title = I18n.t([i18n_prefix, 'titles', data_set[:key], 'title'].join('.'), default: data_set[:key].try(:humanize) )
       - max_score = data_set[:set].map{|set| set[:options].to_a.map{|el| el.respond_to?(:last) ? el.last.to_i : el.to_i }.max }.sum
       %li{ class: "toggleable-tab #{ ( 'active' if data_set[:key].to_s == form.object.send(field.method_name).try(:keys).try(:first).to_s )}" }
         %a{ href: "#", for: total_key, nowrap: "nowrap", data: { toggle: "tab",  target: ".#{klass}:first", max_score: max_score} }
@@ -28,14 +28,17 @@
       - data_set[:set].each do |data_line|
         .col-md-4
           .form-group.form-group-md
-            - options = data_line[:options].to_a.map{ |name, value| [(name.present? ? I18n.t([i18n_prefix, 'options', name.to_s].join('.'), default: name.to_s.try(:humanize)) : value), (value || name)]}
+            - options = data_line[:options].to_a.map{ |name, value| [(name.present? && value.present? ? I18n.t([i18n_prefix, 'options', name.to_s].join('.'), default: name.to_s.try(:humanize)) : I18n.t([i18n_prefix, 'options', [(value || name), data_line[:options].max].join("_of_")].join('.'), default: (value || name) )), (value || name)]}
             - selected_value = form.object.send(field.method_name).try(:[], "points").try(:[], data_set[:key]).try(:[], data_line[:key])
-            - label_name = I18n.t([i18n_prefix, data_line[:key]].join('.'), default: data_line[:key].try(:humanize))
+            - label_name = I18n.t([i18n_prefix, :titles, data_set[:key], data_line[:key]].join('.'), default: data_line[:key].try(:humanize))
             - field_name = "#{form.object_name}[#{field.method_name}][points][#{data_set[:key]}][#{data_line[:key]}]"
+            - config_field_name = "#{form.object_name}[#{field.method_name}][config][#{data_set[:key]}][#{data_line[:key]}]"
             %label.col-sm-6.control-label(for=field_name style="text-align:right;")
               = label_name
             .col-sm-6
               = form.send :select_tag, field_name, options_for_select(options, selected_value), field.html_attributes.reverse_merge({class: "form-control", include_blank: true, onchange: "calculateTotal(this)", total_for: total_key})
+              = form.send :hidden_field_tag, config_field_name + "[min]", options.map{|el| el.last.to_i }.min
+              = form.send :hidden_field_tag, config_field_name + "[max]", options.map{|el| el.last.to_i }.max
 
 
 / .form-horizontal
