@@ -13,7 +13,7 @@
       %li{ class: "toggleable-tab #{ ( 'active' if data_set[:key].to_s == form.object.send(field.method_name).try(:keys).try(:first).to_s )}" }
         %a{ href: "#", for: total_key, nowrap: "nowrap", data: { toggle: "tab",  target: ".#{klass}:first", max_score: max_score} }
           = title
-          %span.total
+          %span.total= form.object.send(field.method_name).try(:[], "totals").try(:[], data_set[:key])
     %li
       %a{ href: "#", for: 'total', nowrap: "nowrap" }
         = "Total"
@@ -36,7 +36,7 @@
             %label.col-sm-6.control-label(for=field_name style="text-align:right;")
               = label_name
             .col-sm-6
-              = form.send :select_tag, field_name, options_for_select(options, selected_value), field.html_attributes.reverse_merge({class: "form-control", include_blank: true, onchange: "calculateTotal(this)", total_for: total_key})
+              = form.send :select_tag, field_name, options_for_select(options, selected_value), field.html_attributes.reverse_merge({class: "form-control", include_blank: true, onchange: "syncTotal(this); calculateTotal(this)", total_for: total_key})
               = form.send :hidden_field_tag, config_field_name + "[min]", options.map{|el| el.last.to_i }.min
               = form.send :hidden_field_tag, config_field_name + "[max]", options.map{|el| el.last.to_i }.max
 
@@ -57,15 +57,22 @@
 /             = form.send :select_tag, field_name, options_for_select(options, selected_value), field.html_attributes.reverse_merge({class: "form-control", include_blank: true})
 
 :javascript
-  calculateTotal = function(el){
+  syncTotal = function(el){
     var sum = 0;
     $(el).closest('.tab-pane').find('select :selected').each(function() {
         sum += Number($(this).val());
     });
     klass = $(el).attr('total_for')
-    $('.scores-controls a[for="' + klass + '"] .total').html(" &mdash; " + sum + " / " + $('.scores-controls a[for="' + klass + '"]').attr('data-max-score') )
     $('input.total-score[name="'+klass+'"]').val(sum)
-    
+
+  }
+
+  calculateTotal = function(el){
+    klass = $(el).attr('total_for')
+
+    sum = $('input.total-score[name="'+klass+'"]').val()
+    $('.scores-controls a[for="' + klass + '"] .total').html(" &mdash; " + sum + " / " + $('.scores-controls a[for="' + klass + '"]').attr('data-max-score') )
+
     var total_sum = 0;
     $('input.total-score').each(function() {
         total_sum += Number($(this).val());
