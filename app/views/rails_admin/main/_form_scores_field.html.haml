@@ -33,13 +33,14 @@
             - label_name = I18n.t([i18n_prefix, :titles, data_set[:key], data_line[:key]].join('.'), default: data_line[:key].try(:humanize))
             - field_name = "#{form.object_name}[#{field.method_name}][points][#{data_set[:key]}][#{data_line[:key]}]"
             - config_field_name = "#{form.object_name}[#{field.method_name}][config][#{data_set[:key]}][#{data_line[:key]}]"
+            - previous_point = form.object.place.reviews.where('id < ?', form.object.id).order('created_at DESC')[0]['scores']['points'][data_set[:key]][data_line[:key]]
+            - prev_options = options.select{|o| o[1].to_s == previous_point }[0].try(:[], 0)
             %label.col-sm-6.control-label(for=field_name style="text-align:right;")
               = label_name
-              - if selected_value.present?
-                (#{options.select{|opt| opt[1].to_s == selected_value }.first[0]})
+              - if prev_options.present?
+                ("#{prev_options}")
             .col-sm-6
-              = form.send :select_tag, field_name, options_for_select(options, selected_value),
-              field.html_attributes.reverse_merge({class: "form-control", include_blank: true, onchange: "syncTotal(this); calculateTotal(this)", total_for: total_key})
+              = form.send :select_tag, field_name, options_for_select(options, selected_value), field.html_attributes.reverse_merge({class: "form-control", include_blank: true, onchange: "syncTotal(this); calculateTotal(this)", total_for: total_key})
               = form.send :hidden_field_tag, config_field_name + "[min]", options.map{|el| el.last.to_i }.min
               = form.send :hidden_field_tag, config_field_name + "[max]", options.map{|el| el.last.to_i }.max
 
