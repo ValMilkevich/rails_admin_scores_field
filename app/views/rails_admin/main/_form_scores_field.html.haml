@@ -33,7 +33,8 @@
             - label_name = I18n.t([i18n_prefix, :titles, data_set[:key], data_line[:key]].join('.'), default: data_line[:key].try(:humanize))
             - field_name = "#{form.object_name}[#{field.method_name}][points][#{data_set[:key]}][#{data_line[:key]}]"
             - config_field_name = "#{form.object_name}[#{field.method_name}][config][#{data_set[:key]}][#{data_line[:key]}]"
-            - previous_point = form.object.place.reviews.where('id < ?', form.object.id).order('created_at DESC')[0]['scores']['points'][data_set[:key]][data_line[:key]]
+            - previous_point = form.object.place.reviews.where('id < ?', form.object.id).order('created_at DESC').first.try(:[], 'scores').try(:[], 'points').try(:[], "#{data_set[:key]}").try(:[], "#{data_line[:key]}")
+              - if previous_point.present?
             - prev_options = options.select{|o| o[1].to_s == previous_point }[0].try(:[], 0)
             %label.col-sm-6.control-label(for=field_name style="text-align:right;")
               = label_name
