@@ -22,24 +22,36 @@
   - field.scores_config[:data].each do |data_set|
     - klass = "scores-tab-#{data_set[:key]}-#{form.object.id}"
     - total_key = "#{form.object_name}[#{field.method_name}][totals]#{data_set[:key]}"
+    - legend_text_array = I18n.t([i18n_prefix, 'titles', data_set[:key], 'legend'].join('.'), default: '' )
     .fields.tab-pane{ for: total_key, class: "#{klass} #{'active' if data_set[:key].to_s == form.object.send(field.method_name).try(:keys).try(:first).to_s }" }
+      - if legend_text_array.present?
+        %div(style="padding-left: 20px;")
+          %b
+            Legend
+          %br
+          %small
+            = raw legend_text_array
+        %br
+
       - if field.scores_config[:show_totals]
         .row
           .col-md-12
             .form-group.form-group-md
-              %label.col-sm-3.control-label(for=total_key style="text-align:right;")
-                = "Total"
-              .col-sm-9
+              %label.col-sm-6.control-label(for=total_key style="text-align:right;")
+                %b
+                  = "Total"
+              .col-sm-6
                 = form.send :text_field_tag, total_key, form.object.send(field.method_name).try(:[], "totals").try(:[], "#{data_set[:key]}"), {class: "total-score form-control", onchange: "calculateTotal(this);", total_for: total_key }
       - else
         = form.send :hidden_field_tag, total_key, form.object.send(field.method_name).try(:[], "totals").try(:[], "#{data_set[:key]}"), {class: "total-score"}
       .row
       - data_set[:set].each do |data_line|
-        .col-md-6
+        .col-md-12
           .form-group.form-group-md
             - options = data_line[:options].to_a.map{ |name, value| [(name.present? && value.present? ? I18n.t([i18n_prefix, 'options', name.to_s].join('.'), default: name.to_s.try(:humanize)) : I18n.t([i18n_prefix, 'options', [(value || name), data_line[:options].max].join("_of_")].join('.'), default: (value || name) )), (value || name)]}
             - selected_value = form.object.send(field.method_name).try(:[], "points").try(:[], data_set[:key]).try(:[], data_line[:key])
             - label_name = I18n.t([i18n_prefix, :titles, data_set[:key], data_line[:key]].join('.'), default: data_line[:key].try(:humanize))
+            - label_description = I18n.t([i18n_prefix, :titles, data_set[:key], data_line[:key] + "_description"].join('.'), default: "")
             - field_name = "#{form.object_name}[#{field.method_name}][points][#{data_set[:key]}][#{data_line[:key]}]"
             - config_field_name = "#{form.object_name}[#{field.method_name}][config][#{data_set[:key]}][#{data_line[:key]}]"
             - if form.object.id.nil?
@@ -52,10 +64,16 @@
               - previous_point = form.object.place.reviews.where('id < ?', form.object.id).order('created_at DESC').first.try(:[], 'scores').try(:[], 'points').try(:[], "#{data_set[:key]}").try(:[], "#{data_line[:key]}")
               - prev_options = options.select{|o| o[1].to_s == previous_point }[0].try(:[], 0)
             %label.col-sm-6.control-label(for=field_name style="text-align:right;")
-              - if prev_options.present?
-                = "#{label_name} ('#{prev_options}')"
-              - else
-                = label_name
+              %b
+                - if prev_options.present?
+                  = "#{label_name} ('#{prev_options}')"
+                - else
+                  = label_name
+
+              - if label_description.present?
+                %br
+                %small
+                  = label_description
             .col-sm-6
               = form.send :select_tag, field_name, options_for_select(options, selected_value), field.html_attributes.reverse_merge({class: "form-control", include_blank: true, onchange: "syncTotal(this); calculateTotal(this)", total_for: total_key})
               = form.send :hidden_field_tag, config_field_name + "[min]", options.map{|el| el.last.to_i }.min
